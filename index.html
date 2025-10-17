@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>1v1 Boxing Arena · lanjutan1.js</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0b0f;
+      --panel: #111217;
+      --panel-2: #17181f;
+      --ring-line: #1f222b;
+      --red-1: #780000; /* deep crimson */
+      --red-2: #c1121f; /* primary accent */
+      --red-3: #ff2b3a; /* glow */
+      --text: #ebeef3;
+      --muted: #9aa0a6;
+      --ok: #2ecc71;
+      --warn: #ffb703;
+      --danger: #ff2b3a;
+      --shadow: 0 20px 50px rgba(0,0,0,.55);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background:
+        radial-gradient(1000px 500px at 50% -10%, rgba(193,18,31,.25), transparent 60%),
+        linear-gradient(180deg, #0b0b0f 0%, #090a0e 60%, #0b0b0f 100%);
+      color: var(--text);
+      font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      letter-spacing: .2px;
+    }
+    header {
+      padding: 24px 20px; text-align: center; position: relative;
+    }
+    .brand {
+      font-family: Antonio, Impact, system-ui, sans-serif; font-size: 40px; letter-spacing: 2px;
+      text-transform: uppercase; font-weight: 800;
+      color: var(--text);
+      text-shadow: 0 0 18px rgba(255, 43, 58, .25), 0 2px 0 rgba(0,0,0,.9);
+    }
+    .subtitle { color: var(--muted); margin-top: 6px; font-size: 14px; }
+
+    .arena {
+      max-width: 1100px; margin: 10px auto 40px; padding: 20px; position: relative;
+    }
+    /* Boxing ring */
+    .ring {
+      position: relative; border-radius: 16px; padding: 22px; background: var(--panel);
+      box-shadow: var(--shadow), inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+    .ring::before, .ring::after {
+      content: ""; position: absolute; inset: 10px; border-radius: 12px;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0, transparent 20px,
+          var(--ring-line) 21px, var(--ring-line) 22px
+        ),
+        linear-gradient(180deg, rgba(255,43,58,.08), transparent);
+      pointer-events: none; z-index: 0;
+    }
+    .ring::after {
+      inset: 0; border-radius: 16px;
+      box-shadow: 0 0 0 2px rgba(255,43,58,.15), 0 0 60px rgba(193,18,31,.2) inset;
+      background: linear-gradient(180deg, rgba(193,18,31,.06), rgba(0,0,0,.0));
+    }
+
+    .fighters { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; position: relative; z-index: 1; }
+    .fighter {
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border-radius: 14px; padding: 18px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+    .name {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+      font-weight: 800; letter-spacing: .8px; text-transform: uppercase; font-family: Antonio, Inter, sans-serif; font-size: 20px;
+    }
+    .badge { font-size: 12px; color: var(--muted); }
+    .bar {
+      position: relative; height: 14px; background: #0f1015; border-radius: 999px; overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+    .fill {
+      position: absolute; inset: 0; width: 50%;
+      background: linear-gradient(90deg, var(--red-1), var(--red-2));
+      box-shadow: 0 0 30px rgba(255, 43, 58, .2);
+      transition: width .25s ease, background .25s ease, filter .25s ease;
+    }
+    .fill.low { background: linear-gradient(90deg, #642000, #ff7b00); filter: saturate(1.2); }
+    .fill.critical { background: linear-gradient(90deg, #4a0005, var(--danger)); animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100%{ box-shadow: 0 0 18px rgba(255, 43, 58, .3);} 50%{ box-shadow: 0 0 6px rgba(255, 43, 58, .15);} }
+    .nums { display: flex; justify-content: space-between; margin-top: 8px; color: var(--muted); font-size: 12px; }
+
+    .controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 14px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row input {
+      width: 90px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.08);
+      background: #0f1015; color: var(--text); outline: none; font-weight: 600;
+    }
+    .btn {
+      padding: 10px 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: 800; letter-spacing: .5px;
+      background: linear-gradient(180deg, #a9111c, #8e0e18); color: #fff; box-shadow: 0 6px 18px rgba(255,43,58,.25);
+      transition: transform .06s ease, filter .2s ease, box-shadow .2s ease;
+    }
+    .btn:hover { filter: brightness(1.05) saturate(1.1); }
+    .btn:active { transform: translateY(1px); }
+    .btn.secondary { background: linear-gradient(180deg, #21232c, #1a1c23); color: var(--text); box-shadow: 0 6px 18px rgba(0,0,0,.2); }
+    .btn.warn { background: linear-gradient(180deg, #e01b25, #b60f18); }
+    .btn.ok { background: linear-gradient(180deg, #1e7d44, #145f31); }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    .center {
+      display: grid; place-items: center; margin: 18px 0 0; position: relative; z-index: 1;
+    }
+    .cta {
+      display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    }
+
+    .log {
+      margin-top: 18px; background: #0f1015; border-radius: 12px; padding: 12px; max-height: 220px; overflow: auto;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+    .log h3 { margin: 0 0 8px; font-size: 14px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .8px; }
+    .entry { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #e7d6d8; }
+    .entry .who { color: #ffdadd; font-weight: 800; }
+    .entry .dmg { color: var(--danger); font-weight: 800; }
+    .entry .heal { color: var(--ok); font-weight: 800; }
+    .muted { color: var(--muted); }
+
+    footer { text-align: center; color: var(--muted); padding: 18px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">One by One · Boxing Arena</div>
+    <div class="subtitle">Powered by <code>lanjutan1.js</code> · Tema merah hitam elegan</div>
+  </header>
+
+  <!-- Load game script first -->
+  <script src="./lanjutan1.js"></script>
+
+  <main class="arena">
+    <section class="ring">
+      <div class="fighters">
+        <div class="fighter" id="p1">
+          <div class="name">
+            <span class="label">Fighter 1</span>
+            <span class="badge" id="p1-name">-</span>
+          </div>
+          <div class="bar"><div class="fill" id="p1-bar"></div></div>
+          <div class="nums"><span id="p1-energy">0</span><span class="muted">ENERGY</span></div>
+          <div class="controls">
+            <div class="row">
+              <input id="p1-eat" type="number" min="1" value="5" />
+              <button class="btn ok" id="p1-eat-btn">Makan</button>
+            </div>
+            <div class="row">
+              <input id="p1-hit" type="number" min="1" value="5" />
+              <button class="btn warn" id="p1-hit-btn">Hit Lawan</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="fighter" id="p2">
+          <div class="name">
+            <span class="label">Fighter 2</span>
+            <span class="badge" id="p2-name">-</span>
+          </div>
+          <div class="bar"><div class="fill" id="p2-bar"></div></div>
+          <div class="nums"><span id="p2-energy">0</span><span class="muted">ENERGY</span></div>
+          <div class="controls">
+            <div class="row">
+              <input id="p2-eat" type="number" min="1" value="5" />
+              <button class="btn ok" id="p2-eat-btn">Makan</button>
+            </div>
+            <div class="row">
+              <input id="p2-hit" type="number" min="1" value="5" />
+              <button class="btn warn" id="p2-hit-btn">Hit Lawan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="center">
+        <div class="cta">
+          <button class="btn secondary" id="reset-btn">Reset</button>
+          <button class="btn" id="randomize-btn">Random Round</button>
+        </div>
+      </div>
+
+      <div class="log" id="log">
+        <h3>Activity Log</h3>
+        <div id="log-entries"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Jika tombol tidak berfungsi, pastikan <code>lanjutan1.js</code> ada dan memuat tanpa error (buka Console F12).
+  </footer>
+
+  <script>
+    // Guard if lanjutan1.js not loaded
+    const entriesEl = document.getElementById('log-entries');
+    function log(msg) {
+      const line = document.createElement('div');
+      line.className = 'entry';
+      line.innerHTML = msg;
+      entriesEl.prepend(line);
+    }
+
+    if (typeof Pemain !== 'function' || typeof pemain1 === 'undefined' || typeof pemain2 === 'undefined') {
+      log('<span class="dmg">Gagal</span>: Skrip <code>lanjutan1.js</code> tidak memuat atau variabel tidak ditemukan.');
+    }
+
+    // Access the players from lanjutan1.js
+    const p1 = typeof pemain1 !== 'undefined' ? pemain1 : { nama: 'P1', energi: 0 };
+    const p2 = typeof pemain2 !== 'undefined' ? pemain2 : { nama: 'P2', energi: 0 };
+
+    const p1Name = document.getElementById('p1-name');
+    const p2Name = document.getElementById('p2-name');
+    const p1Energy = document.getElementById('p1-energy');
+    const p2Energy = document.getElementById('p2-energy');
+    const p1Bar = document.getElementById('p1-bar');
+    const p2Bar = document.getElementById('p2-bar');
+
+    const p1EatInput = document.getElementById('p1-eat');
+    const p2EatInput = document.getElementById('p2-eat');
+    const p1HitInput = document.getElementById('p1-hit');
+    const p2HitInput = document.getElementById('p2-hit');
+
+    const p1EatBtn = document.getElementById('p1-eat-btn');
+    const p2EatBtn = document.getElementById('p2-eat-btn');
+    const p1HitBtn = document.getElementById('p1-hit-btn');
+    const p2HitBtn = document.getElementById('p2-hit-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const randomBtn = document.getElementById('randomize-btn');
+
+    const initE1 = p1.energi;
+    const initE2 = p2.energi;
+
+    function fmt(n) { return Math.max(0, Math.floor(n)); }
+    function pct(n, base = 100) { return Math.max(0, Math.min(100, Math.floor((n / base) * 100))); }
+
+    // We'll normalize to 100 as a full bar reference or use max of both
+    function computeMax() {
+      return Math.max(100, p1.energi, p2.energi, initE1, initE2);
+    }
+
+    function render() {
+      p1Name.textContent = p1.nama || 'P1';
+      p2Name.textContent = p2.nama || 'P2';
+
+      const maxRef = computeMax();
+      const p1p = pct(p1.energi, maxRef);
+      const p2p = pct(p2.energi, maxRef);
+      p1Bar.style.width = p1p + '%';
+      p2Bar.style.width = p2p + '%';
+
+      p1Bar.classList.toggle('low', p1p <= 40 && p1p > 20);
+      p1Bar.classList.toggle('critical', p1p <= 20);
+      p2Bar.classList.toggle('low', p2p <= 40 && p2p > 20);
+      p2Bar.classList.toggle('critical', p2p <= 20);
+
+      p1Energy.textContent = fmt(p1.energi);
+      p2Energy.textContent = fmt(p2.energi);
+
+      // Disable buttons if KO
+      const p1KO = p1.energi <= 0;
+      const p2KO = p2.energi <= 0;
+      p1EatBtn.disabled = p1KO; p1HitBtn.disabled = p1KO || p2KO;
+      p2EatBtn.disabled = p2KO; p2HitBtn.disabled = p2KO || p1KO;
+    }
+
+    function toInt(v, def = 1) {
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) && n > 0 ? n : def;
+    }
+
+    function clampNonNegative(obj) {
+      if (obj && typeof obj.energi === 'number' && obj.energi < 0) obj.energi = 0;
+    }
+
+    // Wire events
+    p1EatBtn?.addEventListener('click', () => {
+      const val = toInt(p1EatInput.value, 5);
+      if (typeof p1.makan === 'function') {
+        p1.makan(val);
+        log(`<span class="who">${p1.nama}</span> makan <span class="heal">+${val}</span>`);
+        render();
+      }
+    });
+    p2EatBtn?.addEventListener('click', () => {
+      const val = toInt(p2EatInput.value, 5);
+      if (typeof p2.makan === 'function') {
+        p2.makan(val);
+        log(`<span class="who">${p2.nama}</span> makan <span class="heal">+${val}</span>`);
+        render();
+      }
+    });
+    p1HitBtn?.addEventListener('click', () => {
+      const val = toInt(p1HitInput.value, 5);
+      if (typeof p2.damage === 'function') {
+        p2.damage(val);
+        clampNonNegative(p2);
+        log(`<span class="who">${p1.nama}</span> memukul <span class="who">${p2.nama}</span> <span class="dmg">-${val}</span>`);
+        render();
+      }
+    });
+    p2HitBtn?.addEventListener('click', () => {
+      const val = toInt(p2HitInput.value, 5);
+      if (typeof p1.damage === 'function') {
+        p1.damage(val);
+        clampNonNegative(p1);
+        log(`<span class="who">${p2.nama}</span> memukul <span class="who">${p1.nama}</span> <span class="dmg">-${val}</span>`);
+        render();
+      }
+    });
+
+    resetBtn?.addEventListener('click', () => {
+      p1.energi = initE1; p2.energi = initE2;
+      log('<span class="muted">Reset pertandingan</span>');
+      render();
+    });
+
+    randomBtn?.addEventListener('click', () => {
+      // Quick random action: either eat or hit from random fighter
+      const actor = Math.random() < 0.5 ? p1 : p2;
+      const target = actor === p1 ? p2 : p1;
+      const isEat = Math.random() < 0.5;
+      const val = Math.max(1, Math.floor(Math.random() * 10));
+      if (isEat && typeof actor.makan === 'function') {
+        actor.makan(val);
+        log(`<span class="who">${actor.nama}</span> makan <span class="heal">+${val}</span>`);
+      } else if (typeof target.damage === 'function') {
+        target.damage(val);
+        clampNonNegative(target);
+        log(`<span class="who">${actor.nama}</span> memukul <span class="who">${target.nama}</span> <span class="dmg">-${val}</span>`);
+      }
+      render();
+    });
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
