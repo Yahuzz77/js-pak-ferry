@@ -154,11 +154,17 @@
           <div class="nums"><span id="p1-energy">0</span><span class="muted">ENERGY</span></div>
           <div class="controls">
             <div class="row">
-              <input id="p1-eat" type="number" min="1" value="5" />
+              <select id="p1-food" title="Makanan">
+                <option value="">Pilih Makanan</option>
+              </select>
+              <input id="p1-eat" type="number" min="1" value="5" title="Jumlah manual"/>
               <button class="btn ok" id="p1-eat-btn">Makan</button>
             </div>
             <div class="row">
-              <input id="p1-hit" type="number" min="1" value="5" />
+              <select id="p1-weapon" title="Senjata">
+                <option value="">Pilih Pukulan</option>
+              </select>
+              <input id="p1-hit" type="number" min="1" value="5" title="Damage manual"/>
               <button class="btn warn" id="p1-hit-btn">Hit Lawan</button>
             </div>
           </div>
@@ -173,11 +179,17 @@
           <div class="nums"><span id="p2-energy">0</span><span class="muted">ENERGY</span></div>
           <div class="controls">
             <div class="row">
-              <input id="p2-eat" type="number" min="1" value="5" />
+              <select id="p2-food" title="Makanan">
+                <option value="">Pilih Makanan</option>
+              </select>
+              <input id="p2-eat" type="number" min="1" value="5" title="Jumlah manual"/>
               <button class="btn ok" id="p2-eat-btn">Makan</button>
             </div>
             <div class="row">
-              <input id="p2-hit" type="number" min="1" value="5" />
+              <select id="p2-weapon" title="Senjata">
+                <option value="">Pilih Pukulan</option>
+              </select>
+              <input id="p2-hit" type="number" min="1" value="5" title="Damage manual"/>
               <button class="btn warn" id="p2-hit-btn">Hit Lawan</button>
             </div>
           </div>
@@ -227,10 +239,14 @@
     const p1Bar = document.getElementById('p1-bar');
     const p2Bar = document.getElementById('p2-bar');
 
-    const p1EatInput = document.getElementById('p1-eat');
-    const p2EatInput = document.getElementById('p2-eat');
-    const p1HitInput = document.getElementById('p1-hit');
-    const p2HitInput = document.getElementById('p2-hit');
+  const p1EatInput = document.getElementById('p1-eat');
+  const p2EatInput = document.getElementById('p2-eat');
+  const p1HitInput = document.getElementById('p1-hit');
+  const p2HitInput = document.getElementById('p2-hit');
+  const p1FoodSel = document.getElementById('p1-food');
+  const p2FoodSel = document.getElementById('p2-food');
+  const p1WeaponSel = document.getElementById('p1-weapon');
+  const p2WeaponSel = document.getElementById('p2-weapon');
 
     const p1EatBtn = document.getElementById('p1-eat-btn');
     const p2EatBtn = document.getElementById('p2-eat-btn');
@@ -273,6 +289,44 @@
       const p2KO = p2.energi <= 0;
       p1EatBtn.disabled = p1KO; p1HitBtn.disabled = p1KO || p2KO;
       p2EatBtn.disabled = p2KO; p2HitBtn.disabled = p2KO || p1KO;
+
+      // Populate inventory dropdowns once
+      if (p1FoodSel && p1FoodSel.dataset.filled !== '1' && p1.inventory) {
+        (p1.inventory.getFoods?.() || []).forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = String(f.id);
+          opt.textContent = `${f.name} (+${f.heal}) ${f.qty===Infinity?'':`x${f.qty}`}`;
+          p1FoodSel.appendChild(opt);
+        });
+        p1FoodSel.dataset.filled = '1';
+      }
+      if (p2FoodSel && p2FoodSel.dataset.filled !== '1' && p2.inventory) {
+        (p2.inventory.getFoods?.() || []).forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = String(f.id);
+          opt.textContent = `${f.name} (+${f.heal}) ${f.qty===Infinity?'':`x${f.qty}`}`;
+          p2FoodSel.appendChild(opt);
+        });
+        p2FoodSel.dataset.filled = '1';
+      }
+      if (p1WeaponSel && p1WeaponSel.dataset.filled !== '1' && p1.inventory) {
+        (p1.inventory.getWeapons?.() || []).forEach(w => {
+          const opt = document.createElement('option');
+          opt.value = String(w.id);
+          opt.textContent = `${w.name} (-${w.damage}) ${w.qty===Infinity?'':`x${w.qty}`}`;
+          p1WeaponSel.appendChild(opt);
+        });
+        p1WeaponSel.dataset.filled = '1';
+      }
+      if (p2WeaponSel && p2WeaponSel.dataset.filled !== '1' && p2.inventory) {
+        (p2.inventory.getWeapons?.() || []).forEach(w => {
+          const opt = document.createElement('option');
+          opt.value = String(w.id);
+          opt.textContent = `${w.name} (-${w.damage}) ${w.qty===Infinity?'':`x${w.qty}`}`;
+          p2WeaponSel.appendChild(opt);
+        });
+        p2WeaponSel.dataset.filled = '1';
+      }
     }
 
     function toInt(v, def = 1) {
@@ -286,24 +340,55 @@
 
     // Wire events
     p1EatBtn?.addEventListener('click', () => {
-      const val = toInt(p1EatInput.value, 5);
-      if (typeof p1.makan === 'function') {
+      let val = 0;
+      if (p1FoodSel?.value) {
+        val = p1.inventory?.consumeFood?.(p1FoodSel.value) || 0;
+        // Update label qty after consume
+        if (p1FoodSel.selectedIndex > 0) {
+          const f = p1.inventory.getFoods?.().find(x => String(x.id) === p1FoodSel.value);
+          if (f) {
+            p1FoodSel.options[p1FoodSel.selectedIndex].textContent = `${f.name} (+${f.heal}) ${f.qty===Infinity?'':`x${f.qty}`}`;
+          }
+        }
+      }
+      if (!val) val = toInt(p1EatInput.value, 5);
+      if (val > 0 && typeof p1.makan === 'function') {
         p1.makan(val);
         log(`<span class="who">${p1.nama}</span> makan <span class="heal">+${val}</span>`);
         render();
       }
     });
     p2EatBtn?.addEventListener('click', () => {
-      const val = toInt(p2EatInput.value, 5);
-      if (typeof p2.makan === 'function') {
+      let val = 0;
+      if (p2FoodSel?.value) {
+        val = p2.inventory?.consumeFood?.(p2FoodSel.value) || 0;
+        if (p2FoodSel.selectedIndex > 0) {
+          const f = p2.inventory.getFoods?.().find(x => String(x.id) === p2FoodSel.value);
+          if (f) {
+            p2FoodSel.options[p2FoodSel.selectedIndex].textContent = `${f.name} (+${f.heal}) ${f.qty===Infinity?'':`x${f.qty}`}`;
+          }
+        }
+      }
+      if (!val) val = toInt(p2EatInput.value, 5);
+      if (val > 0 && typeof p2.makan === 'function') {
         p2.makan(val);
         log(`<span class="who">${p2.nama}</span> makan <span class="heal">+${val}</span>`);
         render();
       }
     });
     p1HitBtn?.addEventListener('click', () => {
-      const val = toInt(p1HitInput.value, 5);
-      if (typeof p2.damage === 'function') {
+      let val = 0;
+      if (p1WeaponSel?.value) {
+        val = p1.inventory?.useWeapon?.(p1WeaponSel.value) || 0;
+        if (p1WeaponSel.selectedIndex > 0) {
+          const w = p1.inventory.getWeapons?.().find(x => String(x.id) === p1WeaponSel.value);
+          if (w) {
+            p1WeaponSel.options[p1WeaponSel.selectedIndex].textContent = `${w.name} (-${w.damage}) ${w.qty===Infinity?'':`x${w.qty}`}`;
+          }
+        }
+      }
+      if (!val) val = toInt(p1HitInput.value, 5);
+      if (val > 0 && typeof p2.damage === 'function') {
         p2.damage(val);
         clampNonNegative(p2);
         log(`<span class="who">${p1.nama}</span> memukul <span class="who">${p2.nama}</span> <span class="dmg">-${val}</span>`);
@@ -311,8 +396,18 @@
       }
     });
     p2HitBtn?.addEventListener('click', () => {
-      const val = toInt(p2HitInput.value, 5);
-      if (typeof p1.damage === 'function') {
+      let val = 0;
+      if (p2WeaponSel?.value) {
+        val = p2.inventory?.useWeapon?.(p2WeaponSel.value) || 0;
+        if (p2WeaponSel.selectedIndex > 0) {
+          const w = p2.inventory.getWeapons?.().find(x => String(x.id) === p2WeaponSel.value);
+          if (w) {
+            p2WeaponSel.options[p2WeaponSel.selectedIndex].textContent = `${w.name} (-${w.damage}) ${w.qty===Infinity?'':`x${w.qty}`}`;
+          }
+        }
+      }
+      if (!val) val = toInt(p2HitInput.value, 5);
+      if (val > 0 && typeof p1.damage === 'function') {
         p1.damage(val);
         clampNonNegative(p1);
         log(`<span class="who">${p2.nama}</span> memukul <span class="who">${p1.nama}</span> <span class="dmg">-${val}</span>`);
@@ -322,6 +417,8 @@
 
     resetBtn?.addEventListener('click', () => {
       p1.energi = initE1; p2.energi = initE2;
+      // Reset dropdowns label/qty by re-creating options
+      [p1FoodSel, p2FoodSel, p1WeaponSel, p2WeaponSel].forEach(sel => { if (sel) { sel.dataset.filled = '0'; sel.length = 1; } });
       log('<span class="muted">Reset pertandingan</span>');
       render();
     });
